@@ -1,6 +1,5 @@
 arrow
 beautifulsoup4
-bibtexparser
 deprecated
 fake-useragent
 free-proxy
