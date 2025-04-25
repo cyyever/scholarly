@@ -3,7 +3,6 @@ from typing import Optional
 
 import arrow
 import bibtexparser
-from bibtexparser.bibdatabase import BibDatabase
 
 from .data_types import BibEntry, Mandate, Publication, PublicationSource
 
@@ -442,6 +441,7 @@ class PublicationParser:
         """
         if not publication["filled"]:
             publication = self.fill(publication)
+        from bibtexparser.bibdatabase import BibDatabase
         a = BibDatabase()
         converted_dict = publication["bib"]
         try:
