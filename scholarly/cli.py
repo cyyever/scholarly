@@ -2,6 +2,7 @@
 
 import argparse
 from collections import Counter
+from html import unescape
 import json
 import re
 import sys
@@ -19,7 +20,8 @@ def _write_json(value) -> None:
 
 
 def _normalize_title(title: str) -> str:
-    """Normalize punctuation and spacing for title comparison."""
+    """Normalize HTML, punctuation, and spacing for title comparison."""
+    title = unescape(re.sub(r"<[^>]*>", " ", title))
     return " ".join(re.sub(r"[^\w]+", " ", title.casefold()).split())
 
 
@@ -38,16 +40,42 @@ def _check_doi_titles(file: Path) -> list[dict]:
                 result.update({"status": "missing_data", "doi_title": None,
                                "matches": None})
             else:
-                response = client.get(
-                    f"https://api.crossref.org/works/{quote(doi, safe='/')}")
-                response.raise_for_status()
-                metadata = response.json()["message"]
-                doi_titles = metadata.get("title", [])
-                doi_title = doi_titles[0] if doi_titles else ""
-                result.update({"doi_title": doi_title,
-                               "matches": _normalize_title(title) == _normalize_title(doi_title),
-                               "status": "matched" if _normalize_title(title) == _normalize_title(doi_title)
-                               else "mismatch"})
+                doi_title = None
+                source = None
+                errors = []
+                for registry, url in (
+                    ("crossref", f"https://api.crossref.org/works/{quote(doi, safe='/')}"),
+                    ("datacite", f"https://api.datacite.org/dois/{quote(doi, safe='')}"),
+                ):
+                    try:
+                        response = client.get(url)
+                        if response.status_code == 404:
+                            errors.append(f"{registry}: DOI not found")
+                            continue
+                        response.raise_for_status()
+                        payload = response.json()
+                        metadata = payload.get("message", {}) if registry == "crossref" else payload.get("data", {}).get("attributes", {})
+                        candidate = metadata.get("title", [])
+                        if isinstance(candidate, list):
+                            candidate = candidate[0] if candidate else ""
+                        if isinstance(candidate, dict):
+                            candidate = candidate.get("title", "")
+                        if candidate:
+                            doi_title = str(candidate)
+                            source = registry
+                            break
+                        errors.append(f"{registry}: title unavailable")
+                    except httpx.HTTPError as exc:
+                        errors.append(f"{registry}: {exc}")
+
+                if doi_title is None:
+                    result.update({"doi_title": None, "matches": None,
+                                   "status": "lookup_error", "errors": errors})
+                else:
+                    matches = _normalize_title(title) == _normalize_title(doi_title)
+                    result.update({"doi_title": doi_title, "source": source,
+                                   "matches": matches,
+                                   "status": "matched" if matches else "mismatch"})
             results.append(result)
     return results
 
@@ -129,10 +157,14 @@ def main(argv=None) -> int:
                 "duplicate_keys": duplicate_keys,
                 "parse_issues": parse_issues,
             }
-            report["doi_title_checks"] = _check_doi_titles(args.file)
+            doi_title_checks = _check_doi_titles(args.file)
+            report["doi_title_checks"] = [
+                item for item in doi_title_checks
+                if item["status"] != "matched"
+            ]
             _write_json(report)
             return 1 if any(
-                item["status"] == "mismatch"
+                item["status"] in {"mismatch", "lookup_error"}
                 for item in report["doi_title_checks"]
             ) else 0
 
