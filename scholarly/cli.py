@@ -3,16 +3,53 @@
 import argparse
 from collections import Counter
 import json
+import re
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 import bibtexparser
+import httpx
 from bibtexparser.model import DuplicateBlockKeyBlock, Entry
 from . import scholarly as api
 
 
 def _write_json(value) -> None:
     print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+
+
+def _normalize_title(title: str) -> str:
+    """Normalize punctuation and spacing for title comparison."""
+    return " ".join(re.sub(r"[^\w]+", " ", title.casefold()).split())
+
+
+def _check_doi_titles(file: Path) -> list[dict]:
+    library = bibtexparser.parse_string(file.read_text(encoding="utf-8-sig"))
+    entries = [block for block in library.blocks if isinstance(block, Entry)]
+    results = []
+    with httpx.Client(timeout=15, headers={"User-Agent": "scholarly/1.7 (DOI title checker)"}) as client:
+        for entry in entries:
+            fields = {field.key.lower(): str(field.value).strip()
+                      for field in entry.fields}
+            doi = fields.get("doi", "")
+            title = fields.get("title", "")
+            result = {"key": entry.key, "doi": doi, "title": title}
+            if not doi or not title:
+                result.update({"status": "missing_data", "doi_title": None,
+                               "matches": None})
+            else:
+                response = client.get(
+                    f"https://api.crossref.org/works/{quote(doi, safe='/')}")
+                response.raise_for_status()
+                metadata = response.json()["message"]
+                doi_titles = metadata.get("title", [])
+                doi_title = doi_titles[0] if doi_titles else ""
+                result.update({"doi_title": doi_title,
+                               "matches": _normalize_title(title) == _normalize_title(doi_title),
+                               "status": "matched" if _normalize_title(title) == _normalize_title(doi_title)
+                               else "mismatch"})
+            results.append(result)
+    return results
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -81,7 +118,7 @@ def main(argv=None) -> int:
                  "details": str(getattr(block, "error", block))}
                 for block in library.blocks if not isinstance(block, Entry)
             ]
-            _write_json({
+            report = {
                 "file": str(args.file),
                 "entry_count": len(entries),
                 "entry_types": dict(sorted(Counter(
@@ -91,8 +128,13 @@ def main(argv=None) -> int:
                 "missing_fields": missing_fields,
                 "duplicate_keys": duplicate_keys,
                 "parse_issues": parse_issues,
-            })
-            return 0
+            }
+            report["doi_title_checks"] = _check_doi_titles(args.file)
+            _write_json(report)
+            return 1 if any(
+                item["status"] == "mismatch"
+                for item in report["doi_title_checks"]
+            ) else 0
 
         if args.limit < 1:
             parser.error("--limit must be at least 1")
