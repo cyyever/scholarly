@@ -159,7 +159,7 @@ class _Scholarly:
                                   sort_by=sort_by, include_last_year=include_last_year, start_index=start_index)
         return self.__nav.search_publications(url)
 
-    def search_citedby(self, publication_id: Union[int, str], **kwargs):
+    def search_citedby(self, publication_id: int | str, **kwargs):
         """Searches by Google Scholar publication id and returns a generator of Publication objects.
 
         :param publication_id: Google Scholar publication id
@@ -309,7 +309,7 @@ class _Scholarly:
 
     def _citedby_long(self, object: Publication, years):
         # Extract cites_id. Note: There could be multiple ones, separated by commas.
-        m = re.search("cites=[\d+,]*", object["citedby_url"])
+        m = re.search(r"cites=[\d+,]*", object["citedby_url"])
         pub_id = m.group()[6:]
         for y_hi, y_lo in years:
             sub_citations = self.search_citedby(publication_id=pub_id, year_low=y_lo, year_high=y_hi)
@@ -383,7 +383,7 @@ class _Scholarly:
         url = _KEYWORDSEARCH.format(requests.utils.quote(reg_keyword))
         return self.__nav.search_authors(url)
 
-    def search_keywords(self, keywords: List[str]):
+    def search_keywords(self, keywords: list[str]):
         """Search by keywords and return a generator of Author objects
 
         :param keywords: a list of keywords to be searched
@@ -562,7 +562,7 @@ class _Scholarly:
         try:
             with open(filename, 'w') as f:
                 f.write(text)
-        except IOError:
+        except OSError:
             self.logger.error("Error writing mandates as %s", filename)
         finally:
             return text
@@ -576,12 +576,12 @@ class _Scholarly:
         """Construct URL from requested parameters."""
         url = baseurl
 
-        yr_lo = '&as_ylo={0}'.format(year_low) if year_low is not None else ''
-        yr_hi = '&as_yhi={0}'.format(year_high) if year_high is not None else ''
-        citations = '&as_vis={0}'.format(1 - int(citations))
-        patents = '&as_sdt={0},33'.format(1 - int(patents))
+        yr_lo = f'&as_ylo={year_low}' if year_low is not None else ''
+        yr_hi = f'&as_yhi={year_high}' if year_high is not None else ''
+        citations = f'&as_vis={1 - int(citations)}'
+        patents = f'&as_sdt={1 - int(patents)},33'
         sortby = ''
-        start = '&start={0}'.format(start_index) if start_index > 0 else ''
+        start = f'&start={start_index}' if start_index > 0 else ''
 
         if sort_by == "date":
             if include_last_year == "abstracts":
@@ -624,7 +624,7 @@ class _Scholarly:
         #print(categories)
         return categories
 
-    def get_journals(self, category='English', subcategory=None, include_comments: bool = False) -> Dict[int, Journal]:
+    def get_journals(self, category='English', subcategory=None, include_comments: bool = False) -> dict[int, Journal]:
         try:
             cat = self.journal_categories[category]
             try:
@@ -659,7 +659,7 @@ class _Scholarly:
                 #print(result)
                 return result
             except KeyError:
-                raise ValueError("Invalid subcategory: %s for %s. Choose one from %s" % (subcategory, category, cat.keys()))
+                raise ValueError("Invalid subcategory: {} for {}. Choose one from {}".format(subcategory, category, cat.keys()))
         except KeyError:
             raise ValueError("Invalid category: %s. Choose one from %s", category, self.journal_categories.keys())
 
@@ -676,7 +676,7 @@ class _Scholarly:
                 for rank, journal in journals.items():
                     row = [journal['name'], journal['h5_index'], journal['h5_median']] + [journal.get('comment', '')]*include_comments
                     csv_writer.writerow(row)
-        except IOError:
+        except OSError:
             self.logger.error("Error writing journals as %s", filename)
         finally:
             return journals

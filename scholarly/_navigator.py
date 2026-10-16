@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 from ._proxy_generator import ProxyGenerator, MaxTriesExceededException, DOSException
 
 from bs4 import BeautifulSoup
@@ -24,16 +20,16 @@ class Singleton(type):
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args,
+            cls._instances[cls] = super().__call__(*args,
                                                                  **kwargs)
         return cls._instances[cls]
 
 
-class Navigator(object, metaclass=Singleton):
+class Navigator(metaclass=Singleton):
     """A class used to navigate pages on google scholar."""
 
     def __init__(self):
-        super(Navigator, self).__init__()
+        super().__init__()
         self.logger = logging.getLogger('scholarly')
         self._TIMEOUT = 5
         self._max_retries = 5
@@ -50,7 +46,7 @@ class Navigator(object, metaclass=Singleton):
     def set_logger(self, enable: bool):
         """Enable or disable the logger for google scholar."""
 
-        self.logger.setLevel((logging.INFO if enable else logging.CRITICAL))
+        self.logger.setLevel(logging.INFO if enable else logging.CRITICAL)
 
     def set_timeout(self, timeout: int):
         """Set timeout period in seconds for scholarly"""
@@ -113,7 +109,7 @@ class Navigator(object, metaclass=Singleton):
                 time.sleep(w)
                 resp = session.get(pagerequest, timeout=timeout)
                 if premium is False:  # premium methods may contain sensitive information
-                    self.logger.debug("Session proxy config is {}".format(pm._proxies))
+                    self.logger.debug(f"Session proxy config is {pm._proxies}")
 
                 has_captcha = self._requests_has_captcha(resp.text)
 
@@ -163,7 +159,7 @@ class Navigator(object, metaclass=Singleton):
                     time.sleep(w)
                     continue
             except (Timeout, TimeoutException) as e:
-                err = "Timeout Exception %s while fetching page: %s" % (type(e).__name__, e.args)
+                err = "Timeout Exception {} while fetching page: {}".format(type(e).__name__, e.args)
                 self.logger.info(err)
                 if timeout < 3*self._TIMEOUT:
                     self.logger.info("Increasing timeout and retrying within same session.")
@@ -171,7 +167,7 @@ class Navigator(object, metaclass=Singleton):
                     continue
                 self.logger.info("Giving up this session.")
             except Exception as e:
-                err = "Exception %s while fetching page: %s" % (type(e).__name__, e.args)
+                err = "Exception {} while fetching page: {}".format(type(e).__name__, e.args)
                 self.logger.info(err)
                 self.logger.info("Retrying with a new session.")
 
@@ -236,8 +232,8 @@ class Navigator(object, metaclass=Singleton):
 
     def _get_soup(self, url: str) -> BeautifulSoup:
         """Return the BeautifulSoup for a page on scholar.google.com"""
-        html = self._get_page('https://scholar.google.com{0}'.format(url))
-        html = html.replace(u'\xa0', u' ')
+        html = self._get_page(f'https://scholar.google.com{url}')
+        html = html.replace('\xa0', ' ')
         res = BeautifulSoup(html, 'html.parser')
         try:
             self.publib = res.find('div', id='gs_res_glb').get('data-sva')

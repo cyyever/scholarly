@@ -41,7 +41,7 @@ def remap_bib(parsed_bib: dict, mapping: dict, data_types:dict ={}) -> BibEntry:
 
     return parsed_bib
 
-class _SearchScholarIterator(object):
+class _SearchScholarIterator:
     """Iterator that returns Publication objects from the search page
     I have removed all logging from here for simplicity. -V
     """
@@ -102,7 +102,7 @@ class _SearchScholarIterator(object):
         self._pos = state['pos']
 
 
-class PublicationParser(object):
+class PublicationParser:
     """Returns an object for a single publication"""
 
     def __init__(self, nav):
@@ -204,8 +204,8 @@ class PublicationParser(object):
 
         author_div_element = databox.find('div', class_='gs_a')
         authorinfo = author_div_element.text
-        authorinfo = authorinfo.replace(u'\xa0', u' ')       # NBSP
-        authorinfo = authorinfo.replace(u'&amp;', u'&')      # Ampersand
+        authorinfo = authorinfo.replace('\xa0', ' ')       # NBSP
+        authorinfo = authorinfo.replace('&amp;', '&')      # Ampersand
         publication['bib']["author"] = self._get_authorlist(authorinfo)
         authorinfo_html = author_div_element.decode_contents()
         publication["author_id"] = self._get_author_id_list(authorinfo_html)
@@ -238,8 +238,8 @@ class PublicationParser(object):
 
         if databox.find('div', class_='gs_rs'):
             publication['bib']['abstract'] = databox.find('div', class_='gs_rs').text
-            publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\u2026', u'')
-            publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\n', u' ')
+            publication['bib']['abstract'] = publication['bib']['abstract'].replace('\u2026', '')
+            publication['bib']['abstract'] = publication['bib']['abstract'].replace('\n', ' ')
             publication['bib']['abstract'] = publication['bib']['abstract'].strip()
 
             if publication['bib']['abstract'][0:8].lower() == 'abstract':

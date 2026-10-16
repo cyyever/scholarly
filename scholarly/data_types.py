@@ -3,10 +3,7 @@ import sys
 from enum import Enum
 from typing import List, Dict
 
-if sys.version_info >= (3, 8):
-    from typing import TypedDict
-else:
-    from typing_extensions import TypedDict
+from typing import TypedDict
 
 
 class PublicationSource(str, Enum):
@@ -93,13 +90,15 @@ class ProxyMode(str, Enum):
 
 
 ''' Lightweight Data Structure to keep distribution of citations of the years '''
-CitesPerYear = Dict[int, int]
+CitesPerYear = dict[int, int]
 
 
 ''' Lightweight Data Structure to hold the numbers articles available or
     not available publicly according to funding mandates
 '''
-PublicAccess = TypedDict('PublicAccess', {"available": int, "not_available": int})
+class PublicAccess(TypedDict):
+    available: int
+    not_available: int
 
 
 class BibEntry(TypedDict, total=False):
@@ -207,14 +206,14 @@ class Publication(TypedDict, total=False):
 
     bib: BibEntry
     gsrank: int
-    author_id: List[str]
+    author_id: list[str]
     num_citations: int
-    cites_id: List[str]
+    cites_id: list[str]
     citedby_url: str
     cites_per_year: CitesPerYear
     author_pub_id: str
     public_access: bool
-    mandates: List[Mandate]
+    mandates: list[Mandate]
     eprint_url: str
     pub_url: str
     url_add_sclib: str
@@ -261,8 +260,8 @@ class Author(TypedDict, total=False):
     url_picture: str
     homepage: str
     citedby: int
-    filled: List[str]
-    interests: List[str]
+    filled: list[str]
+    interests: list[str]
     citedby5y: int
     hindex: int
     hindex5y: int
@@ -270,8 +269,8 @@ class Author(TypedDict, total=False):
     i10index5y: int
     cites_per_year: CitesPerYear
     public_access: PublicAccess
-    publications: List[Publication]
-    coauthors: List # List of authors. No self dict functionality available
+    publications: list[Publication]
+    coauthors: list # List of authors. No self dict functionality available
     container_type: str
     source: AuthorSource
 

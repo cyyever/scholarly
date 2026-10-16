@@ -152,7 +152,7 @@ class TestScholarly(unittest.TestCase):
         # Example 1
         authors = [a['name'] for a in scholarly.search_keyword('3d shape')]
         self.assertIsNot(len(authors), 0)
-        self.assertIn(u'Steven A. Cholewiak, PhD', authors)
+        self.assertIn('Steven A. Cholewiak, PhD', authors)
 
         # Example 2
         expected_author = {'affiliation': 'Stanford University',
@@ -202,8 +202,8 @@ class TestScholarly(unittest.TestCase):
         authors = [a for a in scholarly.search_author(query)]
         self.assertGreaterEqual(len(authors), 1)
         author = scholarly.fill(authors[0])
-        self.assertEqual(author['name'], u'Steven A. Cholewiak, PhD')
-        self.assertEqual(author['scholar_id'], u'4bahYMkAAAAJ')
+        self.assertEqual(author['name'], 'Steven A. Cholewiak, PhD')
+        self.assertEqual(author['scholar_id'], '4bahYMkAAAAJ')
 
         self.assertEqual(author['homepage'], "http://steven.cholewiak.com/")
         self.assertEqual(author['organization'], 6518679690484165796)
@@ -213,7 +213,7 @@ class TestScholarly(unittest.TestCase):
         self.assertEqual(author['public_access']['not_available'],
                          sum(pub.get('public_access', None) is False for pub in author['publications']))
         pub = author['publications'][2]
-        self.assertEqual(pub['author_pub_id'], u'4bahYMkAAAAJ:LI9QrySNdTsC')
+        self.assertEqual(pub['author_pub_id'], '4bahYMkAAAAJ:LI9QrySNdTsC')
         self.assertTrue('5738786554683183717' in pub['cites_id'])
         scholarly.fill(pub)
         mandate = Mandate(agency="US National Science Foundation", effective_date="2016/1", embargo="12 months",
@@ -238,7 +238,7 @@ class TestScholarly(unittest.TestCase):
         """
         authors = [a['name'] for a in scholarly.search_author('cattani')]
         self.assertGreaterEqual(len(authors), 24)
-        self.assertIn(u'Giordano Cattani', authors)
+        self.assertIn('Giordano Cattani', authors)
 
     def test_search_author_id(self):
         """
@@ -246,9 +246,9 @@ class TestScholarly(unittest.TestCase):
         EmD_lTEAAAAJ and these IDs are permenant
         """
         author = scholarly.search_author_id('EmD_lTEAAAAJ')
-        self.assertEqual(author['name'], u'Marie Skłodowska-Curie')
+        self.assertEqual(author['name'], 'Marie Skłodowska-Curie')
         self.assertEqual(author['affiliation'],
-                         u'Institut du radium, University of Paris')
+                         'Institut du radium, University of Paris')
 
     def test_search_author_id_filled(self):
         """
@@ -258,9 +258,9 @@ class TestScholarly(unittest.TestCase):
         on Google Scholar and 179 publications
         """
         author = scholarly.search_author_id('EmD_lTEAAAAJ', filled=True)
-        self.assertEqual(author['name'], u'Marie Skłodowska-Curie')
+        self.assertEqual(author['name'], 'Marie Skłodowska-Curie')
         self.assertEqual(author['affiliation'],
-                         u'Institut du radium, University of Paris')
+                         'Institut du radium, University of Paris')
         self.assertEqual(author['interests'], [])
         self.assertEqual(author['public_access']['available'], 0)
         self.assertEqual(author['public_access']['not_available'], 0)
@@ -340,11 +340,11 @@ class TestScholarly(unittest.TestCase):
             self.assertGreaterEqual(i, 0)
             # elided title
             self.assertEqual(author['publications'][pub_index]['bib']['title'],
-                             u'Evaluation of toxicity of Dichlorvos (Nuvan) to fresh water fish Anabas testudineus and possible modulation by crude aqueous extract of Andrographis paniculata: A preliminary …')
+                             'Evaluation of toxicity of Dichlorvos (Nuvan) to fresh water fish Anabas testudineus and possible modulation by crude aqueous extract of Andrographis paniculata: A preliminary …')
             # full text
             pub = scholarly.fill(author['publications'][pub_index])
             self.assertEqual(pub['bib']['title'],
-                             u'Evaluation of toxicity of Dichlorvos (Nuvan) to fresh water fish Anabas testudineus and possible modulation by crude aqueous extract of Andrographis paniculata: A preliminary investigation')
+                             'Evaluation of toxicity of Dichlorvos (Nuvan) to fresh water fish Anabas testudineus and possible modulation by crude aqueous extract of Andrographis paniculata: A preliminary investigation')
 
             self.assertEqual(pub['bib']['citation'], "")
 
@@ -354,11 +354,11 @@ class TestScholarly(unittest.TestCase):
         self.assertGreaterEqual(i, 0)
         # elided title
         self.assertEqual(author['publications'][pub_index]['bib']['title'],
-                         u'Evaluation of toxicity of Dichlorvos (Nuvan) to fresh water fish Anabas testudineus and possible modulation by crude aqueous extract of Andrographis paniculata: A preliminary …')
+                         'Evaluation of toxicity of Dichlorvos (Nuvan) to fresh water fish Anabas testudineus and possible modulation by crude aqueous extract of Andrographis paniculata: A preliminary …')
         # full text
         pub = scholarly.fill(author['publications'][pub_index])
         self.assertEqual(pub['bib']['title'],
-                         u'Evaluation of toxicity of Dichlorvos (Nuvan) to fresh water fish Anabas testudineus and possible modulation by crude aqueous extract of Andrographis paniculata: A preliminary …')
+                         'Evaluation of toxicity of Dichlorvos (Nuvan) to fresh water fish Anabas testudineus and possible modulation by crude aqueous extract of Andrographis paniculata: A preliminary …')
 
         self.assertEqual(pub['bib']['citation'], "Journal of Fisheries and Life Sciences 5 (2), 74-84, 2020")
 
@@ -450,7 +450,7 @@ class TestScholarly(unittest.TestCase):
         """
         query_url = "/citations?hl=en&view_op=search_authors&mauthors=label%3A3d_shape"
         authors = scholarly.search_author_custom_url(query_url)
-        self.assertIn(u'Steven A. Cholewiak, PhD', [author['name'] for author in authors])
+        self.assertIn('Steven A. Cholewiak, PhD', [author['name'] for author in authors])
 
     @unittest.skipIf(sys.platform.startswith("win"), reason="File read is empty in Windows")
     def test_download_mandates_csv(self):
@@ -461,7 +461,7 @@ class TestScholarly(unittest.TestCase):
             text = scholarly.download_mandates_csv(self.mandates_filename)
             self.assertGreater(len(text), 0)
         funder, policy, percentage2020, percentageOverall = [], [], [], []
-        with open(self.mandates_filename, "r") as f:
+        with open(self.mandates_filename) as f:
             csv_reader = csv.DictReader(f)
             for row in csv_reader:
                 funder.append(row['\ufeffFunder'])
@@ -541,7 +541,7 @@ class TestScholarly(unittest.TestCase):
         try:
             scholarly.save_journals_csv(category="Physics & Mathematics", subcategory="Astronomy & Astrophysics",
                                         filename=filename, include_comments=True)
-            with open(filename, "r") as f:
+            with open(filename) as f:
                 csv_reader = csv.DictReader(f)
                 for row in csv_reader:
                     # These hard-coded values need regular updates.
@@ -759,16 +759,16 @@ class TestScholarlyWithProxy(unittest.TestCase):
         pubs = [p for p in results]
         self.assertGreaterEqual(len(pubs), 1)
         f = scholarly.fill(pubs[0])
-        self.assertTrue(f['bib']['author'] == u'Cholewiak, Steven A and Love, Gordon D and Banks, Martin S')
+        self.assertTrue(f['bib']['author'] == 'Cholewiak, Steven A and Love, Gordon D and Banks, Martin S')
         self.assertTrue(f['author_id'] == ['4bahYMkAAAAJ', '3xJXtlwAAAAJ', 'Smr99uEAAAAJ'])
-        self.assertTrue(f['bib']['journal'] == u'Journal of Vision')
+        self.assertTrue(f['bib']['journal'] == 'Journal of Vision')
         self.assertTrue(f['bib']['number'] == '9')
-        self.assertTrue(f['bib']['pages'] == u'1--1')
-        self.assertTrue(f['bib']['publisher'] == u'The Association for Research in Vision and Ophthalmology')
-        self.assertTrue(f['bib']['title'] == u'Creating correct blur and its effect on accommodation')
-        self.assertTrue(f['pub_url'] == u'https://jov.arvojournals.org/article.aspx?articleid=2701817')
+        self.assertTrue(f['bib']['pages'] == '1--1')
+        self.assertTrue(f['bib']['publisher'] == 'The Association for Research in Vision and Ophthalmology')
+        self.assertTrue(f['bib']['title'] == 'Creating correct blur and its effect on accommodation')
+        self.assertTrue(f['pub_url'] == 'https://jov.arvojournals.org/article.aspx?articleid=2701817')
         self.assertTrue(f['bib']['volume'] == '18')
-        self.assertTrue(f['bib']['pub_year'] == u'2018')
+        self.assertTrue(f['bib']['pub_year'] == '2018')
 
     def test_related_articles_from_author(self):
         """

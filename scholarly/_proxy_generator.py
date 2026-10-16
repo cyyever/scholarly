@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 from fp.fp import FreeProxy
 import random
 import logging
@@ -41,7 +41,7 @@ class MaxTriesExceededException(Exception):
     """Maximum number of tries by scholarly reached"""
 
 
-class ProxyGenerator(object):
+class ProxyGenerator:
     def __init__(self):
         # setting up logger
         self.logger = logging.getLogger('scholarly')
