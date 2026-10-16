@@ -1,9 +1,13 @@
 """Command line interface for scholarly."""
 
 import argparse
+from collections import Counter
 import json
 import sys
+from pathlib import Path
 
+import bibtexparser
+from bibtexparser.model import DuplicateBlockKeyBlock, Entry
 from . import scholarly as api
 
 
@@ -30,16 +34,68 @@ def build_parser() -> argparse.ArgumentParser:
     authors.add_argument("--limit", type=int, default=10,
                          help="maximum results to return (default: 10)")
 
+    bibliography = subparsers.add_parser(
+        "scan-bib", help="scan a BibTeX file for entries and missing fields"
+    )
+    bibliography.add_argument("file", type=Path, help="path to a .bib file")
+    bibliography.add_argument(
+        "--required-fields", default="title,author,year",
+        help="comma-separated fields to check (default: title,author,year)",
+    )
+
     return parser
 
 
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.limit < 1:
-        parser.error("--limit must be at least 1")
 
     try:
+        if args.command == "scan-bib":
+            required_fields = [
+                field.strip().lower()
+                for field in args.required_fields.split(",")
+                if field.strip()
+            ]
+            library = bibtexparser.parse_string(
+                args.file.read_text(encoding="utf-8-sig")
+            )
+            entries = [block for block in library.blocks if isinstance(block, Entry)]
+            keys = [entry.key for entry in entries]
+            duplicate_keys = sorted({
+                block.key for block in library.blocks
+                if isinstance(block, DuplicateBlockKeyBlock)
+            } | {
+                key for key, count in Counter(keys).items()
+                if key and count > 1
+            })
+            missing_fields = []
+            for entry in entries:
+                fields = {field.key.lower(): str(field.value).strip()
+                          for field in entry.fields}
+                missing = [field for field in required_fields if not fields.get(field)]
+                if missing:
+                    missing_fields.append({"key": entry.key, "fields": missing})
+            parse_issues = [
+                {"type": type(block).__name__,
+                 "details": str(getattr(block, "error", block))}
+                for block in library.blocks if not isinstance(block, Entry)
+            ]
+            _write_json({
+                "file": str(args.file),
+                "entry_count": len(entries),
+                "entry_types": dict(sorted(Counter(
+                    entry.entry_type for entry in entries
+                ).items())),
+                "required_fields": required_fields,
+                "missing_fields": missing_fields,
+                "duplicate_keys": duplicate_keys,
+                "parse_issues": parse_issues,
+            })
+            return 0
+
+        if args.limit < 1:
+            parser.error("--limit must be at least 1")
         if args.command == "search-pubs":
             results = []
             for publication in api.search_pubs(args.query):
