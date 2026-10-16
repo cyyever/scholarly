@@ -24,6 +24,9 @@ dependencies = [
     "urllib3>=2.5.0",
 ]
 
+[project.scripts]
+scholarly = "scholarly.cli:main"
+
 [project.optional-dependencies]
 fake-useragent = ["fake-useragent"]
 tor = ["stem"]
