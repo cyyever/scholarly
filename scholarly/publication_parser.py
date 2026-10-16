@@ -1,7 +1,7 @@
 import re
 import bibtexparser
 import arrow
-from bibtexparser.bibdatabase import BibDatabase
+from bibtexparser.model import Entry, Field
 from .data_types import BibEntry, Mandate, Publication, PublicationSource
 
 
@@ -367,8 +367,14 @@ class PublicationParser(object):
         elif publication['source'] == PublicationSource.PUBLICATION_SEARCH_SNIPPET:
             bibtex_url = self._get_bibtex(publication['url_scholarbib'])
             bibtex = self.nav._get_page(bibtex_url)
-            parser = bibtexparser.bparser.BibTexParser(common_strings=True)
-            parsed_bib = remap_bib(bibtexparser.loads(bibtex,parser).entries[-1], _BIB_MAPPING, _BIB_DATATYPES)
+            library = bibtexparser.parse_string(bibtex)
+            entries = [block for block in library.blocks if isinstance(block, Entry)]
+            if not entries:
+                raise ValueError('No BibTeX entry found')
+            entry = entries[-1]
+            parsed_entry = {'ENTRYTYPE': entry.entry_type, 'ID': entry.key}
+            parsed_entry.update({field.key: str(field.value) for field in entry.fields})
+            parsed_bib = remap_bib(parsed_entry, _BIB_MAPPING, _BIB_DATATYPES)
             publication['bib'].update(parsed_bib)
             publication['filled'] = True
         return publication
@@ -399,13 +405,14 @@ class PublicationParser(object):
         """
         if not publication['filled']:
             publication = self.fill(publication)
-        a = BibDatabase()
         converted_dict = publication['bib']
         converted_dict = remap_bib(converted_dict, _BIB_REVERSE_MAPPING)
         str_dict = {key: str(value) for key, value in converted_dict.items()}
-        # convert every key of the dictionary to string to be Bibtex compatible
-        a.entries = [str_dict]
-        return bibtexparser.dumps(a)
+        entry_type = str_dict.pop('ENTRYTYPE', 'misc')
+        entry_key = str_dict.pop('ID', '')
+        entry = Entry(entry_type, entry_key,
+                      [Field(key, value) for key, value in str_dict.items()])
+        return bibtexparser.write_string(bibtexparser.Library([entry]))
 
     def _get_bibtex(self, bib_url) -> str:
         """Retrieves the bibtex url"""
